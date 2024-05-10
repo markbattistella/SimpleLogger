@@ -83,4 +83,4 @@ Contributions are welcome! If you have suggestions or improvements, please fork 
 
 ## License
 
-PlatformChecker is released under the MIT license. See [LICENSE](https://github.com/markbattistella/SimpleLogger/LICENCE) for details.
+PlatformChecker is released under the MIT license. See [LICENSE](https://github.com/markbattistella/SimpleLogger/blob/main/LICENCE) for details.
