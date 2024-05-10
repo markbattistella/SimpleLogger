@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "platformchecker",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/markbattistella/PlatformChecker.git",
+      "state" : {
+        "revision" : "7ad43ee5eea367a02fec70f8896c9d46e192255b",
+        "version" : "1.0.1"
+      }
+    }
+  ],
+  "version" : 2
+}
