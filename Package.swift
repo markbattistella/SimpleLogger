@@ -18,16 +18,11 @@ let package = Package(
             targets: ["SimpleLogger"]
         )
     ],
-    dependencies: [
-        .package(
-            url: "https://github.com/markbattistella/PlatformChecker.git",
-            from: "1.0.0"
-        )
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "SimpleLogger",
-            dependencies: ["PlatformChecker"],
+            dependencies: [],
             exclude: []
         )
     ]
