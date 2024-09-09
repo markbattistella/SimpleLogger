@@ -1,15 +1,15 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.10
 
 import PackageDescription
 
 let package = Package(
     name: "SimpleLogger",
     platforms: [
-        .iOS(.v14),
-        .macOS(.v11),
-        .macCatalyst(.v14),
-        .tvOS(.v14),
-        .watchOS(.v7),
+        .iOS(.v16),
+        .macOS(.v13),
+        .macCatalyst(.v16),
+        .tvOS(.v16),
+        .watchOS(.v9),
         .visionOS(.v1)
     ],
     products: [
@@ -23,7 +23,8 @@ let package = Package(
         .target(
             name: "SimpleLogger",
             dependencies: [],
-            exclude: []
+            exclude: [],
+            swiftSettings: [.enableExperimentalFeature("StrictConcurrency")]
         )
     ]
 )

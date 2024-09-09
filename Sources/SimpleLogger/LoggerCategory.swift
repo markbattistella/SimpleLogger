@@ -9,10 +9,26 @@ import OSLog
 
 /// Protocol for Logger categories that conforms to `RawRepresentable`, `Hashable`, and
 /// `Equatable`. The `rawValue` must be of type `String`.
-fileprivate protocol LoggerCategoryRepresentable: RawRepresentable, Hashable, Equatable where RawValue == String {}
+private protocol LoggerCategoryRepresentable: RawRepresentable, Hashable, Equatable where RawValue == String {}
+
+/// Global actor to handle logging operations safely in a concurrent environment.
+@globalActor
+private actor LoggerActor {
+    static let shared = LoggerActor()
+
+    /// Internal logger for the actor to manage logging operations safely.
+    private let internalPlugin = Logger(category: LoggerCategory("SimpleLoggerPackage"))
+
+    /// Logs a warning message using the internal logger.
+    ///
+    /// - Parameter message: The warning message to be logged.
+    internal func logWarning(_ message: String) {
+        internalPlugin.warning("\(message, privacy: .public)")
+    }
+}
 
 /// Actor responsible for managing and tracking logger categories.
-internal actor LoggerCategoryManager {
+private actor LoggerCategoryManager {
 
     /// A set to track existing category raw values to prevent duplicates.
     private var existingRawValues = Set<String>()
@@ -21,7 +37,7 @@ internal actor LoggerCategoryManager {
     ///
     /// - Parameter rawValue: The string value of the category.
     /// - Returns: A Boolean indicating whether the value was already present.
-    func addCategoryIfNew(_ rawValue: String) -> Bool {
+    internal func addCategoryIfNew(_ rawValue: String) -> Bool {
         let lowercasedValue = rawValue.lowercased()
         if existingRawValues.contains(lowercasedValue) {
             return true
@@ -42,12 +58,6 @@ public struct LoggerCategory: LoggerCategoryRepresentable, Sendable {
     /// Shared actor instance for managing logger categories.
     private static let manager = LoggerCategoryManager()
 
-    /// An internal category for warning logs related to LoggerCategory.
-    private static let simpleLoggerPackage = LoggerCategory("SimpleLoggerPackage")
-
-    /// Logger instance for internal plugin logs.
-    private static let internalPlugin = Logger(category: .simpleLoggerPackage)
-
     /// Initializes a new LoggerCategory with a raw string value.
     /// Ensures that the category is unique by checking against existing categories.
     ///
@@ -57,9 +67,9 @@ public struct LoggerCategory: LoggerCategoryRepresentable, Sendable {
         Task {
             let exists = await LoggerCategory.manager.addCategoryIfNew(rawValue)
             if exists {
-                LoggerCategory
-                    .internalPlugin
-                    .warning("LoggerCategory with rawValue '\(rawValue)' already exists.")
+                await LoggerActor
+                    .shared
+                    .logWarning("LoggerCategory with rawValue '\(rawValue)' already exists.")
             }
         }
     }
