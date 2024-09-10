@@ -1,5 +1,5 @@
 //
-// Project:
+// Project: SimpleLogger
 // Author: Mark Battistella
 // Website: https://markbattistella.com
 //
@@ -29,6 +29,8 @@ extension OSLogEntryLog.Level: CustomStringConvertible {
                 return "Error"
             case .fault:
                 return "Fault"
+            @unknown default:
+                return "Unknown"
         }
     }
 
@@ -47,11 +49,13 @@ extension OSLogEntryLog.Level: CustomStringConvertible {
             case .info:
                 return .blue
             case .notice:
-                return .cyan
+                return Color(AgnosticColor.predatedCyan)
             case .error:
                 return .orange
             case .fault:
                 return .red
+            @unknown default:
+                return .clear
         }
     }
 
@@ -75,6 +79,8 @@ extension OSLogEntryLog.Level: CustomStringConvertible {
                 return "exclamationmark.2"
             case .fault:
                 return "exclamationmark.3"
+            @unknown default:
+                return "questionmark"
         }
     }
 }

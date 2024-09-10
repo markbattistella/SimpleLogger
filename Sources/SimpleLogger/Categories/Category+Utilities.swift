@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - Utilities and Helpers
+
 extension LoggerCategory {
 
     /// Logger category for utility-related logs.

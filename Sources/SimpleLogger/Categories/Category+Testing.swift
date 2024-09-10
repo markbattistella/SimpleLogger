@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - Testing and Validation
+
 extension LoggerCategory {
 
     /// Logger category for testing-related logs.

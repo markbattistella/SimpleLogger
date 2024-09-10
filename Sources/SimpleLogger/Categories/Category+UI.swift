@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - UI and User Interaction
+
 extension LoggerCategory {
 
     /// Logger category for UI-related logs.

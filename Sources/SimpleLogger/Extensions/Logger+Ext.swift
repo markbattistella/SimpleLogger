@@ -7,12 +7,12 @@
 import Foundation
 import OSLog
 
-public extension Logger {
+extension Logger {
 
     /// Initializes a Logger with a specific category.
     ///
     /// - Parameter category: The `LoggerCategory` used for logging.
-    init(category: LoggerCategory) {
+    public init(category: LoggerCategory) {
 
         // Safely handle bundle identifier and provide a default if nil
         let subsystem = Bundle.main.bundleIdentifier ?? "com.markbattistella.simple-logger"

@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - Data Management and Persistence
+
 extension LoggerCategory {
 
     /// Logger category for Core Data-related logs.

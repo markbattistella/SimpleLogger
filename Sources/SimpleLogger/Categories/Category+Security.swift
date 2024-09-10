@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - Security and Permissions
+
 extension LoggerCategory {
 
     /// Logger category for security-related logs.

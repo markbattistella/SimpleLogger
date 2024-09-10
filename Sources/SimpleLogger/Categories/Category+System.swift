@@ -7,6 +7,7 @@
 import Foundation
 
 // MARK: - System and OS
+
 extension LoggerCategory {
 
     /// Logger category for lifecycle-related logs.
