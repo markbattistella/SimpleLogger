@@ -5,13 +5,14 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 import OSLog
 
 // MARK: - Setup
 
 /// A class responsible for managing and filtering OS log entries.
 ///
-/// The `LoggerManager` class allows you to fetch, filter, and export logs from the OS log system. 
+/// The `LoggerManager` class allows you to fetch, filter, and export logs from the OS log system.
 /// It provides various filtering options such as date ranges, specific hours, log levels, and
 /// categories. The class also manages the state of log exporting operations.
 public final class LoggerManager: ObservableObject {
@@ -52,6 +53,12 @@ public final class LoggerManager: ObservableObject {
     /// The current state of the export process for logs.
     @Published public var exportState: ExportState
 
+    /// Define allowed UTTypes
+    private let allowedTypes: [UTType] = [.log, .json, .plainText, .text, .commaSeparatedText]
+
+    /// The accessible file extensions allowed.
+    @Published public private(set) var exportFileExtensions: [UTType]
+
     /// Initializes a new instance of `LoggerManager` with configurable options.
     ///
     /// - Parameters:
@@ -90,6 +97,8 @@ public final class LoggerManager: ObservableObject {
         self.exportState = exportState
         self.logLevels = logLevels
         self.categoryFilters = categoryFilters
+
+        self.exportFileExtensions = allowedTypes
     }
 }
 
@@ -126,16 +135,16 @@ extension LoggerManager {
     /// This enum provides different options for filtering log entries based on specific criteria,
     /// such as a specific date, a date range, an hour range, or preset time intervals.
     public enum FilterType: CustomStringConvertible, CaseIterable {
-        
+
         /// Filter logs by a specific date.
         case specificDate
-        
+
         /// Filter logs within a specified date range.
         case dateRange
-        
+
         /// Filter logs within a specified hour range of the day.
         case hourRange
-        
+
         /// Filter logs using predefined time presets.
         case preset
 
@@ -194,7 +203,7 @@ extension LoggerManager {
             }
         }
 
-        /// The date corresponding to the preset time interval, calculated as the current date 
+        /// The date corresponding to the preset time interval, calculated as the current date
         /// minus the interval duration.
         internal var presetDate: Date {
             return Date().addingTimeInterval(-timeInterval)
@@ -216,22 +225,6 @@ extension LoggerManager {
             }
         }
     }
-
-    /// An enumeration that defines the available formats for exporting logs.
-    ///
-    /// This enum provides options for exporting log entries in different formats, including
-    /// plain text, JSON, or CSV with a specified delimiter.
-    public enum ExportFormat {
-
-        /// Export logs in plain text format.
-        case plainText
-
-        /// Export logs in JSON format.
-        case json
-
-        /// Export logs in CSV format with a specified delimiter.
-        case csv(Delimiter)
-    }
 }
 
 // MARK: - Errors
@@ -247,9 +240,12 @@ extension LoggerManager {
 
         /// An error indicating that fetching logs has failed.
         case failedToFetch
-        
+
         /// An error indicating that writing the log file has failed.
         case failedToWriteFile
+
+        /// An error indicating that the selected UTType is not allowed.
+        case unsupportedFormatType
 
         /// A localized description of the error, suitable for display to the user.
         ///
@@ -265,6 +261,10 @@ extension LoggerManager {
                     return NSLocalizedString(
                         "Failed to write log file.",
                         comment: "Failed to write log file.")
+                case .unsupportedFormatType:
+                    return NSLocalizedString(
+                        "Unsupported filed type selected - only .log, .plaintext, .commaSeparatedValue, or .json are allowed.",
+                        comment: "Unsupported filed type selected.")
             }
         }
     }
@@ -319,19 +319,25 @@ extension LoggerManager {
 
     /// Exports the current logs into the specified format.
     ///
-    /// This method converts the logs into the specified export format, such as plain text, JSON, 
+    /// This method converts the logs into the specified export format, such as plain text, JSON,
     /// or CSV with a specified delimiter. It returns the logs as a formatted string.
     ///
     /// - Parameter format: The format in which to export the logs.
     /// - Returns: A `String` representation of the logs in the specified format.
-    public func exportLogs(as format: ExportFormat) -> String {
+    public func exportLogs(as format: UTType, csvDelimiter: Delimiter = .comma) -> String {
+        guard exportFileExtensions.contains(format) else {
+            return "Unsupported export format."
+        }
+
         switch format {
-            case .plainText:
-                return logEntriesToString(logEntries: logs)
             case .json:
                 return logEntriesToJSON(logEntries: logs)
-            case .csv(let delimiter):
-                return logEntriesToCSV(logEntries: logs, delimiter: delimiter)
+            case .commaSeparatedText:
+                return logEntriesToCSV(logEntries: logs, delimiter: csvDelimiter)
+            case .plainText, .log:
+                return logEntriesToString(logEntries: logs)
+            default:
+                return ""
         }
     }
 
@@ -347,7 +353,11 @@ extension LoggerManager {
     ///   - url: The file URL where the logs should be written.
     /// - Throws: A `LoggerError.failedToWriteFile` error if writing the logs to the file fails.
     @MainActor
-    public func writeLogs(as format: ExportFormat, to url: URL) async throws {
+    public func writeLogs(as format: UTType, to url: URL) async throws {
+        guard exportFileExtensions.contains(format) else {
+            throw LoggerError.unsupportedFormatType
+        }
+
         let logString = exportLogs(as: format)
         do {
             try logString.write(to: url, atomically: true, encoding: .utf8)
@@ -392,10 +402,10 @@ extension LoggerManager {
     /// Computes the start and end dates based on the specified hour range.
     ///
     /// This method creates `Date` objects representing the start and end of the hour range for the
-    /// currently selected specific date. It adjusts the specific date with the start and finish 
+    /// currently selected specific date. It adjusts the specific date with the start and finish
     /// hours and minutes specified in `hourRangeStart` and `hourRangeFinish`.
     ///
-    /// - Returns: A tuple containing the start and end dates, or `nil` if the dates could not 
+    /// - Returns: A tuple containing the start and end dates, or `nil` if the dates could not
     /// be created.
     private func getHourRangeDates() -> (startDate: Date, endDate: Date)? {
         let startHour = Calendar.current.component(.hour, from: hourRangeStart)
@@ -429,7 +439,7 @@ extension LoggerManager {
 
     /// Creates an `NSPredicate` for filtering logs within a date range.
     ///
-    /// This method generates a predicate that filters logs occurring within the specified date 
+    /// This method generates a predicate that filters logs occurring within the specified date
     /// range. If only a start date is provided, logs from that start date onwards are included.
     ///
     /// - Parameters:
@@ -477,7 +487,7 @@ extension LoggerManager {
     /// The output is formatted in a pretty-printed style for readability.
     ///
     /// - Parameter logEntries: The log entries to be converted into JSON format.
-    /// - Returns: A JSON string representation of the log entries, or an empty string if encoding 
+    /// - Returns: A JSON string representation of the log entries, or an empty string if encoding
     /// fails.
     private func logEntriesToJSON(logEntries: [OSLogEntryLog]) -> String {
         let logRepresentations = logEntries.map { LogRepresentation(entry: $0) }
@@ -561,7 +571,7 @@ fileprivate struct LogRepresentation: Encodable {
 
     /// Initializes a new instance of `LogRepresentation` from an `OSLogEntryLog` entry.
     ///
-    /// This initializer extracts and formats the relevant properties from the log entry, 
+    /// This initializer extracts and formats the relevant properties from the log entry,
     /// including formatting the date as an ISO 8601 string and converting the log level to a
     /// string description.
     ///

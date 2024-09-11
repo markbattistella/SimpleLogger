@@ -30,6 +30,8 @@ dependencies: [
 ]
 ```
 
+Alternatively, you can add `SimpleLogger` using Xcode by navigating to `File > Add Packages` and entering the package repository URL.
+
 ## Usage
 
 ### Basic Usage
@@ -269,7 +271,6 @@ Define custom delimiters for CSV exports to ensure data integrity:
 ```swift
 let customCSV = loggerManager.exportLogs(as: .csv(.semicolon))
 ```
-
 
 ## Contributing
 
