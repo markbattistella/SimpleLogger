@@ -5,7 +5,10 @@
 //
 
 import Foundation
-import OSLog
+@_exported import OSLog
+
+/// A type alias for OSLog's Logger to provide a seamless experience when using SimpleLogger
+public typealias SimpleLogger = Logger
 
 extension Logger {
 
