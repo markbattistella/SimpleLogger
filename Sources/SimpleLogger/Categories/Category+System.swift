@@ -33,4 +33,13 @@ extension LoggerCategory {
 
     /// Logger category for timers-related logs.
     public static let timers = LoggerCategory("Timers")
+
+    /// Logger category for push notifications-related logs.
+    public static let pushNotifications = LoggerCategory("PushNotifications")
+
+    /// Logger category for job queue-related logs.
+    public static let jobs = LoggerCategory("Jobs")
+
+    /// Logger category for work queue-related logs.
+    public static let workQueue = LoggerCategory("WorkQueue")
 }

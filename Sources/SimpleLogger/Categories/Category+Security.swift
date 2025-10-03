@@ -27,4 +27,13 @@ extension LoggerCategory {
 
     /// Logger category for authorization-related logs.
     public static let authorization = LoggerCategory("Authorization")
+
+    /// Logger category for user account-related logs.
+    public static let userAccount = LoggerCategory("UserAccount")
+
+    /// Logger category for user profile-related logs.
+    public static let userProfile = LoggerCategory("UserProfile")
+
+    /// Logger category for user session-related logs.
+    public static let userSession = LoggerCategory("UserSession")
 }

@@ -30,4 +30,10 @@ extension LoggerCategory {
 
     /// Logger category for validation-related logs.
     public static let validation = LoggerCategory("Validation")
+
+    /// Logger category for feature flag-related logs.
+    public static let featureFlags = LoggerCategory("FeatureFlags")
+
+    /// Logger category for A/B testing-related logs.
+    public static let abTesting = LoggerCategory("ABTesting")
 }

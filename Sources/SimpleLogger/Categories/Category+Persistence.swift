@@ -45,4 +45,13 @@ extension LoggerCategory {
 
     /// Logger category for restore-related logs.
     public static let restore = LoggerCategory("Restore")
+
+    /// Logger category for cloud sync-related logs.
+    public static let cloudSync = LoggerCategory("CloudSync")
+
+    /// Logger category for document-related logs.
+    public static let documents = LoggerCategory("Documents")
+
+    /// Logger category for file management-related logs.
+    public static let files = LoggerCategory("Files")
 }

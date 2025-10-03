@@ -45,4 +45,16 @@ extension LoggerCategory {
     
     /// Logger category for maps-related logs.
     public static let maps = LoggerCategory("Maps")
+
+    /// Logger category for PDF processing-related logs.
+    public static let pdfProcessing = LoggerCategory("PDFProcessing")
+
+    /// Logger category for third-party integration-related logs.
+    public static let thirdParty = LoggerCategory("ThirdParty")
+
+    /// Logger category for SDK integration-related logs.
+    public static let sdkIntegration = LoggerCategory("SDKIntegration")
+
+    /// Logger category for crash reporting-related logs.
+    public static let crashReporting = LoggerCategory("CrashReporting")
 }
