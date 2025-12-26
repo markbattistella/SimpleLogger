@@ -11,14 +11,26 @@
 
 </div>
 
-`SimpleLogger` is a robust and flexible logging framework designed for Swift applications across multiple platforms, including iOS, macOS, tvOS, and watchOS. It provides extensive functionality for managing, filtering, and exporting logs with ease and precision.
+`SimpleLogger` is a modern Swift logging utility built on Apple’s Unified Logging system (`OSLog`). It provides strongly typed categories, queryable log access, advanced time-based filtering, and multiple export formats, designed primarily for SwiftUI applications.
 
 ## Features
 
-- **Cross-Platform Support:** Unified logging interface across UIKit and AppKit.
-- **Flexible Log Management:** Manage log entries with advanced filtering options, including specific dates, date ranges, hour ranges, and preset intervals.
-- **Customisable Log Levels:** Extend and customise log levels with additional categories for precise logging.
-- **Export Options:** Export logs in plain text, JSON, or CSV formats with configurable delimiters.
+- Type-safe logger categories with duplicate detection
+- Unified Logging integration (`OSLog`)
+- Observable log manager for SwiftUI
+- Advanced filtering
+  - Specific date
+  - Date range
+  - Hour range
+  - Rolling presets (minutes → years)
+- Export formats
+  - Plain text
+  - JSON
+  - JSON Lines (`.jsonl`)
+  - CSV (configurable delimiters)
+  - Optional gzip compression
+- System log exclusion
+- Severity-level filtering
 
 ## Installation
 
@@ -26,7 +38,10 @@ Add `SimpleLogger` to your Swift project using Swift Package Manager.
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/markbattistella/SimpleLogger", from: "1.0.0")
+  .package(
+    url: "https://github.com/markbattistella/SimpleLogger", 
+    from: "1.0.0"
+  )
 ]
 ```
 
@@ -36,30 +51,27 @@ Alternatively, you can add `SimpleLogger` using Xcode by navigating to `File > A
 
 ### Basic Usage
 
-The simple part of `SimpleLogger` is that there is a convenience initialiser which uses the app's internal BundleIdentifier as the subsystem, and has 89 pre-defined common categories.
-
-Using `SimpleLogger` for general logging is as simple as:
+`SimpleLogger` wraps over `OSLog.Logger` under a simplified name and provides a convenience initialiser that automatically uses your app's bundle identifier as the subsystem.
 
 ```swift
-// Create a logger instance with a specific category
-let logger = Logger(category: .ui)
+import SimpleLogger
 
-// Log an informational message
+let logger = Logger(category: .ui)
 logger.info("User tapped the start button")
 ```
 
-#### Predefined Categories
+#### Logger Categories
 
-`SimpleLogger` includes predefined categories to help organise and filter logs more effectively. Below is a table of the available categories:
+Categories are strongly typed using `LoggerCategory`.
 
 ##### Architecture and Patterns
 
 | Logger Category | Description |
-|-----------------------|-------------------------------------------------------|
+| - | - |
 | `routing` | Logger category for routing-related logs. |
 | `navigation` | Logger category for navigation-related logs. |
 | `stateManagement` | Logger category for state management-related logs. |
-| `dependencyInjection` | Logger category for dependency injection-related logs.|
+| `dependencyInjection` | Logger category for dependency injection-related logs. |
 | `observers` | Logger category for observer-related logs. |
 | `publishers` | Logger category for publisher-related logs. |
 | `subscribers` | Logger category for subscriber-related logs. |
@@ -69,7 +81,7 @@ logger.info("User tapped the start button")
 ##### Miscellaneous
 
 | Logger Category | Description |
-|----------------------------|-------------------------------------------------------|
+| - | - |
 | `analytics` | Logger category for analytics-related logs. |
 | `configuration` | Logger category for configuration-related logs. |
 | `errorHandling` | Logger category for error handling-related logs. |
@@ -86,7 +98,7 @@ logger.info("User tapped the start button")
 ##### Networking and Connectivity
 
 | Logger Category | Description |
-|------------------|-------------------------------------------------------|
+| - | - |
 | `network` | Logger category for network-related logs. |
 | `api` | Logger category for API-related logs. |
 | `upload` | Logger category for upload-related logs. |
@@ -100,7 +112,7 @@ logger.info("User tapped the start button")
 ##### Performance and Optimisation
 
 | Logger Category | Description |
-|---------------------|-------------------------------------------------------|
+| - | - |
 | `performance` | Logger category for performance-related logs. |
 | `memoryManagement` | Logger category for memory management-related logs. |
 | `concurrency` | Logger category for concurrency-related logs. |
@@ -111,7 +123,7 @@ logger.info("User tapped the start button")
 ##### Data Management and Persistence
 
 | Logger Category | Description |
-|-----------------------|-------------------------------------------------------|
+| - | - |
 | `coreData` | Logger category for Core Data-related logs. |
 | `swiftData` | Logger category for Swift Data-related logs. |
 | `database` | Logger category for database-related logs. |
@@ -128,7 +140,7 @@ logger.info("User tapped the start button")
 ##### Security and Permissions
 
 | Logger Category | Description |
-|--------------------|-------------------------------------------------------|
+| - | - |
 | `security` | Logger category for security-related logs. |
 | `encryption` | Logger category for encryption-related logs. |
 | `decryption` | Logger category for decryption-related logs. |
@@ -139,7 +151,7 @@ logger.info("User tapped the start button")
 ##### System and OS
 
 | Logger Category | Description |
-|---------------------|-------------------------------------------------------|
+| - | - |
 | `lifecycle` | Logger category for lifecycle-related logs. |
 | `initialization` | Logger category for initialisation-related logs. |
 | `deinitialization` | Logger category for de-initialisation-related logs. |
@@ -152,7 +164,7 @@ logger.info("User tapped the start button")
 ##### Testing and Validation
 
 | Logger Category | Description |
-|----------------------|-------------------------------------------------------|
+| - | - |
 | `testing` | Logger category for testing-related logs. |
 | `unitTesting` | Logger category for unit testing-related logs. |
 | `integrationTesting` | Logger category for integration testing-related logs. |
@@ -164,7 +176,7 @@ logger.info("User tapped the start button")
 ##### UI and User Interaction
 
 | Logger Category | Description |
-|----------------------------|--------------------------------------------------|
+| - | - |
 | `ui` | Logger category for UI-related logs. |
 | `gestures` | Logger category for gesture-related logs. |
 | `animations` | Logger category for animation-related logs. |
@@ -180,7 +192,7 @@ logger.info("User tapped the start button")
 ##### Utilities and Helpers
 
 | Logger Category | Description |
-|------------------|---------------------------------------------------|
+| - | - |
 | `utils` | Logger category for utility-related logs. |
 | `extensions` | Logger category for extension-related logs. |
 | `helpers` | Logger category for helper-related logs. |
@@ -193,22 +205,21 @@ logger.info("User tapped the start button")
 
 #### Custom Categories
 
-The `LoggerCategory` struct allows users to create their own type-safe categories by simply extending the struct, and defining a new category.
-
-If there is a duplicate category (either a new one matches pre-defined, or duplicate custom) the package will log a warning notifying you.
+You can define your own categories safely:
 
 ```swift
 extension LoggerCategory {
-  static let myCustomCategory = LoggerCategory("MyCustomCategory")
+  static let payments = LoggerCategory("Payments")
 }
 
-// Using the custom category
-let logger = Logger(category: .myCustomCategory)
+let logger = Logger(category: .payments)
 ```
+
+If a duplicate category is registered at runtime (case-insensitive), `SimpleLogger` logs a warning automatically.
 
 ### LoggerManager
 
-To initialise `LoggerManager` in your SwiftUI app, create an instance of it, specifying its parameters to tailor the logging behaviour to your needs:
+`LoggerManager` is the central observable object for fetching, filtering, and exporting logs.
 
 ```swift
 import SwiftUI
@@ -216,61 +227,146 @@ import SimpleLogger
 
 @main
 struct MyApp: App {
-    @StateObject private var loggerManager = LoggerManager(
-        excludeSystemLogs: true, 
-        filterType: .all, 
-        logLevels: [.info, .error]
-    )
+  @StateObject private var loggerManager = LoggerManager()
 
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environmentObject(loggerManager)
-        }
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+        .environment(loggerManager)
     }
+  }
 }
 ```
 
-#### Parameters
+### Filtering Logs
 
-| Property/Parameter | Description | Default Value | Use Case |
-|-|-|-|-|
-| `excludeSystemLogs` | Flag to exclude system logs from the fetched results. | `true` | Reduces noise by focusing only on app-specific logs. |
-| `filterType` | Defines the type of filtering to apply to log entries. | `.specificDate` | Helps narrow down logs by specific time frames or criteria like date, range, hour, or preset filters. |
-| `specificDate` | The specific date to filter logs when `filterType` is `.specificDate`. | `Date()` (current date) | Use to view logs from a particular day, useful for investigating specific dates. |
-| `dateRangeStart` | The start date for filtering logs when `filterType` is `.dateRange`. | `Date()` (current date) | Sets the beginning of a date range for log filtering over a specific period. |
-| `dateRangeFinish` | The end date for filtering logs when `filterType` is `.dateRange`. | `Date()` (current date) | Defines the end of a date range, useful for filtering logs between two dates. |
-| `hourRangeStart` | The start time for filtering logs when `filterType` is `.hourRange`. | `Date().addingTimeInterval(-3600)` | Focuses on log entries starting from a specific hour, useful for time-specific investigations. |
-| `hourRangeFinish` | The end time for filtering logs when `filterType` is `.hourRange`. | `Date()` (current time) | Specifies the end time for filtering logs within a particular hour range. |
-| `selectedPreset` | Preset option to filter logs when `filterType` is `.preset`. | `.minutesFive` | Applies predefined time-based filters, convenient for quick and common log filtering scenarios. |
-| `exportState` | Represents the initial state of the export process for logs. | `.ready` | Manages and tracks the state of log exporting, useful for UI elements that reflect export status. |
-| `logLevels` | A set of log levels to filter log entries based on their severity. | `[]` (empty set) | Filters logs by severity (e.g., errors, warnings), focusing on specific levels like `.info` or `.error`. |
-| `categoryFilters` | A set of categories to filter the logs. | `[]` (empty set) | Includes only logs from specified categories (e.g., "UI", "Network"), refining log output for analysis. |
+Filtering is controlled by a filter kind plus associated state.
 
-### Log Filtering
-
-`LoggerManager` supports various filtering options:
-
-- **Specific Date:** Filter logs for a particular day.
-- **Date Range:** Filter logs between two dates.
-- **Hour Range:** Filter logs within specific hours of the day.
-- **Presets:** Use predefined time intervals to filter logs.
-
-### Export Formats
-
-Export logs in different formats:
-
-- **Plain Text:** Readable format with entries separated by lines.
-- **JSON:** Structured data format for integration with other systems.
-- **CSV:** Comma-separated values with customisable delimiters.
-
-#### Dynamic Delimiters
-
-Define custom delimiters for CSV exports to ensure data integrity:
+#### Filter Kinds
 
 ```swift
-let customCSV = loggerManager.exportLogs(as: .csv(.semicolon))
+loggerManager.kind = .specificDate
 ```
+
+Available kinds:
+
+- `.specificDate`
+- `.dateRange`
+- `.hourRange`
+- `.preset`
+
+#### Specific Date
+
+```swift
+loggerManager.kind = .specificDate
+loggerManager.specificDate = Date()
+```
+
+#### Date Range
+
+```swift
+loggerManager.kind = .dateRange
+loggerManager.dateRangeStart = startDate
+loggerManager.dateRangeEnd = endDate
+```
+
+#### Hour Range
+
+```swift
+loggerManager.kind = .hourRange
+loggerManager.hourRangeDate = Date()
+loggerManager.hourRangeStartHour = 9
+loggerManager.hourRangeEndHour = 17
+```
+
+#### Presets
+
+```swift
+loggerManager.kind = .preset
+loggerManager.preset = .lastTwentyFourHours
+```
+
+Presets range from 5 minutes up to 1 year, grouped logically for UI presentation.
+
+### Log Levels
+
+You can filter by severity:
+
+```swift
+loggerManager.levels = [.error, .fault]
+```
+
+Available levels:
+
+- `debug`
+- `info`
+- `notice`
+- `error`
+- `fault`
+
+### Fetching Logs
+
+Fetching is explicit and cancellable.
+
+```swift
+loggerManager.fetch()
+```
+
+State exposed for UI:
+
+- `logs`
+- `isFetching`
+- `hasValidResults`
+- `lastError`
+
+### Exporting Logs
+
+Exports are asynchronous and return `Result<Data, LoggerManagerError>`.
+
+Supported Formats
+
+```text
+.log
+.json
+.jsonLines
+.csv(.comma | .semicolon | .tab | .pipe)
+.gzip(Format)
+```
+
+#### Example
+
+```swift
+let result = await loggerManager.export(
+  format: .gzip(.jsonLines)
+)
+
+switch result {
+  case .success(let data):
+    // write data to file
+  case .failure(let error):
+    print(error.localizedDescription)
+}
+```
+
+#### CSV Delimiters
+
+```text
+.csv(.semicolon)
+.csv(.tab)
+```
+
+All CSV values are safely quoted and escaped.
+
+### Error Handling
+
+Errors are surfaced via `LoggerManagerError`:
+
+```swift
+.fetch(Error)
+.export(Error)
+```
+
+Each error provides a user-friendly `errorDescription`.
 
 ## Contributing
 
@@ -278,4 +374,4 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 ## License
 
-`SimpleLogger` is available under the MIT license. See the LICENSE file for more information.
+`SimpleLogger` is available under the MIT license. See the LICENCE file for more information.
