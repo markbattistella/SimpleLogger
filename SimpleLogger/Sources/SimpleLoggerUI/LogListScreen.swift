@@ -49,7 +49,11 @@ public struct LogListScreen: View {
             }
         }
         .navigationTitle("Logs")
+
+        #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
+
         .onAppear(perform: fetchLogs)
         .refreshable(action: fetchLogs)
         .overlay(alignment: .center) { Overlay() }
@@ -131,17 +135,17 @@ extension LogListScreen {
         var showExportSheet: Bool
 
         var body: some ToolbarContent {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .primaryAction) {
                 Button("Filter", systemImage: "line.3.horizontal.decrease") {
                     showFilterSheet.toggle()
                 }
             }
 
             if #available(iOS 26.0, macOS 26.0, *) {
-                ToolbarSpacer(placement: .topBarTrailing)
+                ToolbarSpacer(placement: .primaryAction)
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .primaryAction) {
                 Button("Export", systemImage: "square.and.arrow.up") {
                     if loggerManager.logs.isEmpty {
                         loggerManager.fetch()

@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		A3E0FD202EFBD9A900A26976 /* SimpleLoggerUI in Frameworks */ = {isa = PBXBuildFile; productRef = A3E0FD1F2EFBD9A900A26976 /* SimpleLoggerUI */; };
-		A3E0FD222EFBDA7D00A26976 /* SimpleLogger in Frameworks */ = {isa = PBXBuildFile; productRef = A3E0FD212EFBDA7D00A26976 /* SimpleLogger */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,7 +27,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A3E0FD222EFBDA7D00A26976 /* SimpleLogger in Frameworks */,
 				A3E0FD202EFBD9A900A26976 /* SimpleLoggerUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -81,7 +79,6 @@
 			name = SimpleLoggerExample;
 			packageProductDependencies = (
 				A3E0FD1F2EFBD9A900A26976 /* SimpleLoggerUI */,
-				A3E0FD212EFBDA7D00A26976 /* SimpleLogger */,
 			);
 			productName = SimpleLoggerExample;
 			productReference = A325CDD02EE14F86002C7C11 /* SimpleLoggerExample.app */;
@@ -376,10 +373,6 @@
 		A3E0FD1F2EFBD9A900A26976 /* SimpleLoggerUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SimpleLoggerUI;
-		};
-		A3E0FD212EFBDA7D00A26976 /* SimpleLogger */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SimpleLogger;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

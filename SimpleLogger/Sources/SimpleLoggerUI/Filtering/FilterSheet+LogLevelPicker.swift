@@ -45,9 +45,12 @@ extension LogListScreen.FilterSheet {
                     Text("When all the levels are unselected, no logs will be shown.")
                 }
             }
-            .environment(\.editMode, .constant(.active))
             .navigationTitle("Filter Log Levels")
+
+            #if !os(macOS)
+            .environment(\.editMode, .constant(.active))
             .navigationBarTitleDisplayMode(.inline)
+            #endif
         }
     }
 }

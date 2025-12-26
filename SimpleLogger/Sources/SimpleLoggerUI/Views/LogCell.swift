@@ -61,7 +61,6 @@ extension LogListScreen {
             .listRowBackground(log.level.color.opacity(0.1))
             .listRowSeparatorTint(log.level.color, edges: .bottom)
             .listRowSeparatorTint(.clear, edges: .top)
-
         }
     }
 }

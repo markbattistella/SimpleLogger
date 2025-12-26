@@ -112,7 +112,11 @@ extension LogListScreen {
                     }
                 }
                 .navigationTitle("Export")
+
+                #if !os(macOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
+
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done", systemImage: "checkmark") {
@@ -139,7 +143,6 @@ extension LogListScreen {
                     }
                 )
             }
-
         }
     }
 }
