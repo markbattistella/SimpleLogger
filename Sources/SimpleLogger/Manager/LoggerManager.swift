@@ -15,7 +15,6 @@ import Observation
 ///
 /// Any change to filter-related properties automatically invalidates the current results and
 /// cancels any in-flight fetch.
-@MainActor
 @Observable
 public final class LoggerManager {
 
@@ -228,24 +227,21 @@ extension LoggerManager {
 
     /// Exports the currently loaded logs in the specified format.
     ///
-    /// The export work is performed asynchronously at user-initiated priority. On success, the
-    /// exported data is returned. On failure, the error is captured in `lastError` and returned
-    /// as a `.failure` result.
+    /// The export work is performed asynchronously on a background thread to avoid blocking
+    /// the caller. On success, the exported data is returned. On failure, the error is captured
+    /// in ``lastError`` and returned as a `.failure` result.
     ///
     /// This method does not throw. Callers are expected to handle success or failure via the
-    /// returned `Result` value, or observe `lastError` for UI presentation.
+    /// returned `Result` value, or observe ``lastError`` for UI presentation.
     ///
     /// - Parameter format: The export format to use.
-    /// - Returns: A `Result` containing the exported `Data` on success, or a `LoggerManagerError`
-    /// describing the failure.
+    /// - Returns: A `Result` containing the exported `Data` on success, or a
+    ///   ``LoggerManagerError`` describing the failure.
     public func export(format: Export.Format) async -> Result<Data, LoggerManagerError> {
         self.lastError = nil
 
         do {
-            let data = try await Task(priority: .userInitiated) {
-                try LoggerExporter.export(logs: logs, as: format)
-            }.value
-
+            let data = try await LoggerExporter.export(logs: logs, as: format)
             return .success(data)
         } catch {
             let managerError = LoggerManagerError.export(error)

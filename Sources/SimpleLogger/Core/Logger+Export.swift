@@ -64,7 +64,7 @@ extension Export {
     ///
     /// `Format` supports both base formats and recursively wrapped formats such as
     /// gzip-compressed exports.
-    public enum Format: Hashable {
+    public enum Format: Hashable, Sendable {
 
         /// A plain log text format.
         case log
@@ -117,7 +117,7 @@ extension Export {
     }
 
     /// A delimiter used when exporting CSV files.
-    public enum Delimiter: String, CaseIterable {
+    public enum Delimiter: String, CaseIterable, Sendable {
 
         /// A comma character (`,`).
         case comma = ","

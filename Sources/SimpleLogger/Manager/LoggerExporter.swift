@@ -11,7 +11,8 @@ internal enum LoggerExporter {
 
     /// Exports the provided log entries using the specified format.
     ///
-    /// The logs are sorted by date in ascending order before export. Depending on the chosen
+    /// The logs are sorted by date in ascending order before export. The export work is performed
+    /// asynchronously on a background thread to avoid blocking the caller. Depending on the chosen
     /// format, the logs may be encoded as JSON, JSON Lines, CSV, plain text, or compressed
     /// using gzip.
     ///
@@ -23,26 +24,28 @@ internal enum LoggerExporter {
     internal static func export(
         logs: [LoggerRepresentation],
         as format: Export.Format
-    ) throws -> Data {
+    ) async throws -> Data {
 
-        let logs = logs.sorted { $0.date < $1.date }
+        try await Task.detached {
+            let logs = logs.sorted { $0.date < $1.date }
 
-        switch format {
-            case .json:
-                return try exportJSON(logs)
+            switch format {
+                case .json:
+                    return try exportJSON(logs)
 
-            case .jsonLines:
-                return try exportJSONLines(logs)
+                case .jsonLines:
+                    return try exportJSONLines(logs)
 
-            case .csv(let delimiter):
-                return try exportCSV(logs, delimiter: delimiter)
+                case .csv(let delimiter):
+                    return try exportCSV(logs, delimiter: delimiter)
 
-            case .log:
-                return exportPlainText(logs)
+                case .log:
+                    return exportPlainText(logs)
 
-            case .gzip(let type):
-                return try export(logs: logs, as: type).gzipped()
-        }
+                case .gzip(let type):
+                    return try await export(logs: logs, as: type).gzipped()
+            }
+        }.value
     }
 }
 

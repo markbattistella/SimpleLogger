@@ -59,7 +59,7 @@ internal protocol LoggerViewable: Identifiable, Sendable {
 ///
 /// This type adapts `OSLogEntryLog` into a stable, serialisable form suitable for persistence,
 /// export, or UI presentation.
-public struct LoggerRepresentation: LoggerViewable, Encodable {
+public struct LoggerRepresentation: LoggerViewable, Encodable, Sendable {
 
     /// The unique identifier for the log entry.
     public let id: UInt64
