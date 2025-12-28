@@ -11,7 +11,7 @@
 
 </div>
 
-`SimpleLogger` is a modern Swift logging utility built on Apple’s Unified Logging system (`OSLog`). It provides strongly typed categories, queryable log access, advanced time-based filtering, and multiple export formats, designed primarily for SwiftUI applications.
+`SimpleLogger` is a modern Swift logging utility built on Apple's Unified Logging system (`OSLog`). It provides strongly typed categories, queryable log access, advanced time-based filtering, and multiple export formats, designed primarily for SwiftUI applications.
 
 ## Features
 

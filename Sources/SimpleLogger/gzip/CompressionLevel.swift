@@ -10,7 +10,7 @@ import zlib
 /// A type-safe wrapper around zlib compression level constants.
 ///
 /// `CompressionLevel` represents the level of compression to apply when performing zlib-based
-/// compression operations. It wraps zlib’s integer constants in a Swift-friendly, `Sendable` type
+/// compression operations. It wraps zlib's integer constants in a Swift-friendly, `Sendable` type
 /// to improve clarity, safety, and concurrency compatibility.
 internal struct CompressionLevel: RawRepresentable, Sendable {
 
@@ -37,7 +37,7 @@ internal struct CompressionLevel: RawRepresentable, Sendable {
     /// important than performance.
     internal static let bestCompression = Self(Z_BEST_COMPRESSION)
 
-    /// Uses zlib’s default compression behaviour.
+    /// Uses zlib's default compression behaviour.
     ///
     /// This uses `Z_DEFAULT_COMPRESSION`, which balances speed and compression ratio.
     internal static let defaultCompression = Self(Z_DEFAULT_COMPRESSION)

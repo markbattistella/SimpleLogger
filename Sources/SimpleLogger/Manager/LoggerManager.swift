@@ -15,6 +15,7 @@ import Observation
 ///
 /// Any change to filter-related properties automatically invalidates the current results and
 /// cancels any in-flight fetch.
+@MainActor
 @Observable
 public final class LoggerManager {
 
@@ -176,23 +177,33 @@ extension LoggerManager {
 
 extension LoggerManager {
 
-    /// Fetches logs matching the current filter configuration.
+    /// Fetches log entries asynchronously based on the currently resolved scope and query
+    /// configuration.
     ///
-    /// Any in-flight fetch is cancelled before starting a new one. If the current filter
-    /// configuration cannot be resolved into a valid scope, the fetch is aborted and `isFetching`
-    /// is reset.
+    /// This method cancels any in-progress fetch operation before starting a new one, ensuring
+    /// that only the most recent request can update state. While fetching, it updates the
+    /// `isFetching` flag and clears any previous error.
     ///
-    /// On success, `logs` and `hasValidResults` are updated.
-    /// On failure, `lastError` is set and results are cleared.
-    @MainActor
-    public func fetch() {
+    /// If no valid scope can be resolved, the fetch is aborted and the fetching state is reset.
+    /// Otherwise, a `LoggerQuery` is constructed using the resolved scope, log level filters,
+    /// and system log exclusion settings.
+    ///
+    /// The fetch is performed on a child task. On success, the fetched log entries are assigned
+    /// to `logs`, and `hasValidResults` is set to `true`. On failure, the logs are cleared,
+    /// valid results are marked as unavailable, and `lastError` is updated with a fetch error.
+    ///
+    /// All state mutations that affect the UI or observable properties are performed on the main
+    /// actor. If the task is cancelled at any point, no state updates are applied.
+    ///
+    /// - Note: This method suspends until the underlying fetch task completes or is cancelled.
+    public func fetch() async {
         fetchTask?.cancel()
 
-        self.isFetching = true
-        self.lastError = nil
+        isFetching = true
+        lastError = nil
 
         guard let scope = resolvedScope else {
-            self.isFetching = false
+            isFetching = false
             return
         }
 
@@ -202,24 +213,29 @@ extension LoggerManager {
             levels: levels
         )
 
-        fetchTask = Task {
+        fetchTask = Task { [reader] in
             do {
                 let results = try await reader.fetch(query: query)
                 guard !Task.isCancelled else { return }
 
-                self.logs = results
-                self.hasValidResults = true
-                self.isFetching = false
-
+                await MainActor.run {
+                    self.logs = results
+                    self.hasValidResults = true
+                    self.isFetching = false
+                }
             } catch {
                 guard !Task.isCancelled else { return }
 
-                self.logs = []
-                self.isFetching = false
-                self.hasValidResults = false
-                self.lastError = .fetch(error)
+                await MainActor.run {
+                    self.logs = []
+                    self.hasValidResults = false
+                    self.isFetching = false
+                    self.lastError = .fetch(error)
+                }
             }
         }
+
+        await fetchTask?.value
     }
 }
 
@@ -261,7 +277,7 @@ extension LoggerManager {
 
         /// An error occurred while exporting logs.
         case export(Error)
-
+        
         /// A stable identifier for use in SwiftUI or other identity-based contexts.
         public var id: String {
             switch self {

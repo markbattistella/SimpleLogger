@@ -63,7 +63,7 @@ internal struct GzipError: Error {
 
     /// A human-readable description of the error.
     ///
-    /// This value is derived from zlib’s error message when available.
+    /// This value is derived from zlib's error message when available.
     internal let message: String
 
     /// Creates a gzip error from a zlib error code and message.

@@ -26,7 +26,7 @@ internal enum LoggerExporter {
         as format: Export.Format
     ) async throws -> Data {
 
-        try await Task.detached {
+        try await Task {
             let logs = logs.sorted { $0.date < $1.date }
 
             switch format {

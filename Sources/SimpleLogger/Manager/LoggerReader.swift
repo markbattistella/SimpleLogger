@@ -11,7 +11,7 @@ internal actor LoggerReader {
 
     /// Fetches log entries matching the provided query.
     ///
-    /// This method reads from the current process’s unified log store, applies a date range,
+    /// This method reads from the current process's unified log store, applies a date range,
     /// filters by log level and subsystem, and converts matching entries into
     /// `LoggerRepresentation` values with stable identifiers.
     ///
