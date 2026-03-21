@@ -57,7 +57,7 @@ extension Filter {
     ///
     /// `Scope` encapsulates the parameters required to compute an effective
     /// date window for filtering log entries.
-    internal enum Scope {
+    internal enum Scope: Sendable {
 
         /// A filter targeting a single calendar date.
         case specificDate(Date)
@@ -117,7 +117,7 @@ extension Filter {
     ///
     /// Presets represent commonly used rolling time windows for filtering
     /// recent log entries.
-    public enum Preset: Int, CaseIterable, Identifiable {
+    public enum Preset: Int, CaseIterable, Identifiable, Sendable {
 
         case lastFiveMinutes, lastTenMinutes, lastFifteenMinutes, lastThirtyMinutes
         case lastOneHour, lastSixHours, lastTwelveHours, lastTwentyFourHours

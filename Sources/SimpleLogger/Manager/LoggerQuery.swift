@@ -7,7 +7,7 @@
 import Foundation
 
 /// A value that describes how log entries should be queried and filtered.
-internal struct LoggerQuery {
+internal struct LoggerQuery: Sendable {
 
     /// The scope that defines the date window used when querying logs.
     internal let scope: Filter.Scope

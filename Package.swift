@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -19,7 +19,9 @@ let package = Package(
     targets: [
         .target(
             name: "SimpleLogger",
-            swiftSettings: [.enableExperimentalFeature("StrictConcurrency")]
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
         )
     ]
 )
