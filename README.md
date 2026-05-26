@@ -40,7 +40,7 @@ Add `SimpleLogger` to your Swift project using Swift Package Manager.
 dependencies: [
   .package(
     url: "https://github.com/markbattistella/SimpleLogger", 
-    from: "1.0.0"
+    from: "26.3.22"
   )
 ]
 ```
@@ -94,6 +94,10 @@ Categories are strongly typed using `LoggerCategory`.
 | `camera` | Logger category for camera-related logs. |
 | `location` | Logger category for location-related logs. |
 | `maps` | Logger category for maps-related logs. |
+| `pdfProcessing` | Logger category for PDF processing-related logs. |
+| `thirdParty` | Logger category for third-party-related logs. |
+| `sdkIntegration` | Logger category for SDK integration-related logs. |
+| `crashReporting` | Logger category for crash reporting-related logs. |
 
 ##### Networking and Connectivity
 
@@ -136,6 +140,17 @@ Categories are strongly typed using `LoggerCategory`.
 | `userDefaults` | Logger category for UserDefaults-related logs. |
 | `backup` | Logger category for backup-related logs. |
 | `restore` | Logger category for restore-related logs. |
+| `cloudSync` | Logger category for cloud sync-related logs. |
+| `documents` | Logger category for document-related logs. |
+| `files` | Logger category for file-related logs. |
+
+##### Commerce
+
+| Logger Category | Description |
+| - | - |
+| `iap` | Logger category for in-app purchase-related logs. |
+| `subscriptions` | Logger category for subscription-related logs. |
+| `receipts` | Logger category for receipt-related logs. |
 
 ##### Security and Permissions
 
@@ -147,6 +162,9 @@ Categories are strongly typed using `LoggerCategory`.
 | `permissions` | Logger category for permissions-related logs. |
 | `authentication` | Logger category for authentication-related logs. |
 | `authorization` | Logger category for authorisation-related logs. |
+| `userAccount` | Logger category for user account-related logs. |
+| `userProfile` | Logger category for user profile-related logs. |
+| `userSession` | Logger category for user session-related logs. |
 
 ##### System and OS
 
@@ -160,6 +178,9 @@ Categories are strongly typed using `LoggerCategory`.
 | `scheduling` | Logger category for scheduling-related logs. |
 | `notifications` | Logger category for notifications-related logs. |
 | `timers` | Logger category for timers-related logs. |
+| `pushNotifications` | Logger category for push notification-related logs. |
+| `jobs` | Logger category for job-related logs. |
+| `workQueue` | Logger category for work queue-related logs. |
 
 ##### Testing and Validation
 
@@ -172,6 +193,8 @@ Categories are strongly typed using `LoggerCategory`.
 | `mocking` | Logger category for mocking-related logs. |
 | `stubbing` | Logger category for stubbing-related logs. |
 | `validation` | Logger category for validation-related logs. |
+| `featureFlags` | Logger category for feature flag-related logs. |
+| `abTesting` | Logger category for A/B testing-related logs. |
 
 ##### UI and User Interaction
 
@@ -227,7 +250,7 @@ import SimpleLogger
 
 @main
 struct MyApp: App {
-  @StateObject private var loggerManager = LoggerManager()
+  @State private var loggerManager = LoggerManager()
 
   var body: some Scene {
     WindowGroup {
@@ -309,7 +332,7 @@ Available levels:
 Fetching is explicit and cancellable.
 
 ```swift
-loggerManager.fetch()
+await loggerManager.fetch()
 ```
 
 State exposed for UI:

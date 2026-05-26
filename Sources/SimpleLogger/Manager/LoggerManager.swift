@@ -19,282 +19,297 @@ import Observation
 @Observable
 public final class LoggerManager {
 
-    /// Internal reader responsible for executing log queries.
-    @ObservationIgnored
-    private let reader = LoggerReader()
+  /// Internal reader responsible for executing log queries.
+  @ObservationIgnored
+  private let reader = LoggerReader()
 
-    /// The currently running fetch task, if any.
-    ///
-    /// Used to cancel in-flight requests when filters change or a new fetch begins.
-    @ObservationIgnored
-    private var fetchTask: Task<Void, Never>?
+  /// The currently running fetch task, if any.
+  ///
+  /// Used to cancel in-flight requests when filters change or a new fetch begins.
+  @ObservationIgnored
+  private var fetchTask: Task<[LoggerRepresentation], Error>?
 
-    /// The most recently fetched logs.
-    public private(set) var logs: [LoggerRepresentation] = []
+  /// A monotonically increasing token used to ignore stale fetch completions.
+  @ObservationIgnored
+  private var fetchGeneration: UInt64 = 0
 
-    /// Indicates whether a fetch operation is currently in progress.
-    public private(set) var isFetching = false
+  /// The most recently fetched logs.
+  public private(set) var logs: [LoggerRepresentation] = []
 
-    /// The most recent error encountered during fetch or export operations.
-    public var lastError: LoggerManagerError?
+  /// Indicates whether a fetch operation is currently in progress.
+  public private(set) var isFetching = false
 
-    /// Indicates whether the current `logs` reflect a valid, completed fetch for the current
-    /// filter configuration.
-    public private(set) var hasValidResults: Bool = false
+  /// The most recent error encountered during fetch or export operations.
+  public var lastError: LoggerManagerError?
 
-    /// The active filter kind used to determine how log scope is resolved.
-    public var kind: Filter.Kind = .specificDate {
-        didSet { invalidate() }
-    }
+  /// Indicates whether the current `logs` reflect a valid, completed fetch for the current
+  /// filter configuration.
+  public private(set) var hasValidResults: Bool = false
 
-    /// The date used when `kind` is `.specificDate`.
-    public var specificDate: Date = .now {
-        didSet { invalidate() }
-    }
+  /// The active filter kind used to determine how log scope is resolved.
+  public var kind: Filter.Kind = .specificDate {
+    didSet { invalidate() }
+  }
 
-    /// The start date used when `kind` is `.dateRange`.
-    public var dateRangeStart: Date = .now {
-        didSet { invalidate() }
-    }
+  /// The date used when `kind` is `.specificDate`.
+  public var specificDate: Date = .now {
+    didSet { invalidate() }
+  }
 
-    /// The end date used when `kind` is `.dateRange`.
-    public var dateRangeEnd: Date = .now {
-        didSet { invalidate() }
-    }
+  /// The start date used when `kind` is `.dateRange`.
+  public var dateRangeStart: Date = .now {
+    didSet { invalidate() }
+  }
 
-    /// The base date used when resolving an hourly range.
-    ///
-    /// The actual start and end times are derived using `hourRangeStartHour` and
-    /// `hourRangeEndHour`.
-    public var hourRangeDate: Date = .now {
-        didSet { invalidate() }
-    }
+  /// The end date used when `kind` is `.dateRange`.
+  public var dateRangeEnd: Date = .now {
+    didSet { invalidate() }
+  }
 
-    /// The starting hour (0–23) for an hourly range filter.
-    public var hourRangeStartHour: Int = 0 {
-        didSet { invalidate() }
-    }
+  /// The base date used when resolving an hourly range.
+  ///
+  /// The actual start and end times are derived using `hourRangeStartHour` and
+  /// `hourRangeEndHour`.
+  public var hourRangeDate: Date = .now {
+    didSet { invalidate() }
+  }
 
-    /// The ending hour (1–24) for an hourly range filter.
-    ///
-    /// A value of `24` represents midnight of the following day.
-    public var hourRangeEndHour: Int = 24 {
-        didSet { invalidate() }
-    }
+  /// The starting hour (0–23) for an hourly range filter.
+  public var hourRangeStartHour: Int = 0 {
+    didSet { invalidate() }
+  }
 
-    /// The preset filter used when `kind` is `.preset`.
-    public var preset: Filter.Preset = .lastFiveMinutes {
-        didSet { invalidate() }
-    }
+  /// The ending hour (1–24) for an hourly range filter.
+  ///
+  /// A value of `24` represents midnight of the following day.
+  public var hourRangeEndHour: Int = 24 {
+    didSet { invalidate() }
+  }
 
-    /// The set of log levels included in the query.
-    ///
-    /// Defaults to all available log levels.
-    public var levels: Set<LogLevel> = Set(LogLevel.allCases) {
-        didSet { invalidate() }
-    }
+  /// The preset filter used when `kind` is `.preset`.
+  public var preset: Filter.Preset = .lastFiveMinutes {
+    didSet { invalidate() }
+  }
 
-    /// Indicates whether system-generated logs should be excluded.
-    public var excludeSystemLogs: Bool = true {
-        didSet { invalidate() }
-    }
+  /// The set of log levels included in the query.
+  ///
+  /// Defaults to all available log levels.
+  public var levels: Set<LogLevel> = Set(LogLevel.allCases) {
+    didSet { invalidate() }
+  }
 
-    /// Creates a new `LoggerManager` with default filter settings.
-    public init() {}
+  /// Indicates whether system-generated logs should be excluded.
+  public var excludeSystemLogs: Bool = true {
+    didSet { invalidate() }
+  }
 
-    /// Invalidates the current results and cancels any active fetch.
-    ///
-    /// This is invoked automatically whenever filter-related state changes.
-    private func invalidate() {
-        fetchTask?.cancel()
-        hasValidResults = false
-    }
+  /// Creates a new `LoggerManager` with default filter settings.
+  public init() {}
+
+  /// Invalidates the current results and cancels any active fetch.
+  ///
+  /// This is invoked automatically whenever filter-related state changes.
+  private func invalidate() {
+    fetchTask?.cancel()
+    fetchTask = nil
+    fetchGeneration &+= 1
+    isFetching = false
+    hasValidResults = false
+  }
 }
 
 extension LoggerManager {
 
-    /// Resolves the current filter configuration into a concrete log scope.
-    ///
-    /// Returns `nil` if the current filter state is invalid (for example, an inverted date range
-    /// or an invalid hour range).
-    private var resolvedScope: Filter.Scope? {
-        switch kind {
-            case .specificDate:
-                return .specificDate(specificDate)
+  /// Resolves the current filter configuration into a concrete log scope.
+  ///
+  /// Returns `nil` if the current filter state is invalid (for example, an inverted date range
+  /// or an invalid hour range).
+  private var resolvedScope: Filter.Scope? {
+    switch kind {
+    case .specificDate:
+      return .specificDate(specificDate)
 
-            case .dateRange:
-                guard dateRangeStart <= dateRangeEnd else { return nil }
-                return .dateRange(from: dateRangeStart, to: dateRangeEnd)
+    case .dateRange:
+      guard dateRangeStart <= dateRangeEnd else { return nil }
+      return .dateRange(from: dateRangeStart, to: dateRangeEnd)
 
-            case .hourRange:
-                guard let (start, end) = resolveHourRange() else { return nil }
-                return .hourRange(from: start, to: end)
+    case .hourRange:
+      guard let (start, end) = resolveHourRange() else { return nil }
+      return .hourRange(from: start, to: end)
 
-            case .preset:
-                return .preset(preset)
-        }
+    case .preset:
+      return .preset(preset)
     }
+  }
 
-    /// Resolves the current hour-range configuration into concrete start and end dates.
-    ///
-    /// The returned dates are aligned to hour boundaries. An end hour of `24` represents midnight
-    /// of the following day.
-    ///
-    /// - Returns: A tuple containing the start and end dates, or `nil` if the hour range
-    /// configuration is invalid.
-    private func resolveHourRange() -> (start: Date, end: Date)? {
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: hourRangeDate)
+  /// Resolves the current hour-range configuration into concrete start and end dates.
+  ///
+  /// The returned dates are aligned to hour boundaries. An end hour of `24` represents midnight
+  /// of the following day.
+  ///
+  /// - Returns: A tuple containing the start and end dates, or `nil` if the hour range
+  /// configuration is invalid.
+  private func resolveHourRange() -> (start: Date, end: Date)? {
+    let calendar = Calendar.current
+    let day = calendar.startOfDay(for: hourRangeDate)
 
-        guard
-            (0...23).contains(hourRangeStartHour),
-            (1...24).contains(hourRangeEndHour),
-            hourRangeStartHour < hourRangeEndHour
-        else { return nil }
+    guard
+      (0...23).contains(hourRangeStartHour),
+      (1...24).contains(hourRangeEndHour),
+      hourRangeStartHour < hourRangeEndHour
+    else { return nil }
 
-        guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
-              let start = calendar.date(
-                bySettingHour: hourRangeStartHour,
-                minute: 0,
-                second: 0,
-                of: day
-              )
-        else { return nil }
+    guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day),
+      let start = calendar.date(
+        bySettingHour: hourRangeStartHour,
+        minute: 0,
+        second: 0,
+        of: day
+      )
+    else { return nil }
 
-        let endBase = hourRangeEndHour == 24 ? nextDay : day
+    let endBase = hourRangeEndHour == 24 ? nextDay : day
 
-        guard let end = calendar.date(
-            bySettingHour: hourRangeEndHour % 24,
-            minute: 0,
-            second: 0,
-            of: endBase
-        )
-        else { return nil }
+    guard
+      let end = calendar.date(
+        bySettingHour: hourRangeEndHour % 24,
+        minute: 0,
+        second: 0,
+        of: endBase
+      )
+    else { return nil }
 
-        return (start, end)
-    }
+    return (start, end)
+  }
 }
 
 extension LoggerManager {
 
-    /// Fetches log entries asynchronously based on the currently resolved scope and query
-    /// configuration.
-    ///
-    /// This method cancels any in-progress fetch operation before starting a new one, ensuring
-    /// that only the most recent request can update state. While fetching, it updates the
-    /// `isFetching` flag and clears any previous error.
-    ///
-    /// If no valid scope can be resolved, the fetch is aborted and the fetching state is reset.
-    /// Otherwise, a `LoggerQuery` is constructed using the resolved scope, log level filters,
-    /// and system log exclusion settings.
-    ///
-    /// The fetch is performed on a child task. On success, the fetched log entries are assigned
-    /// to `logs`, and `hasValidResults` is set to `true`. On failure, the logs are cleared,
-    /// valid results are marked as unavailable, and `lastError` is updated with a fetch error.
-    ///
-    /// All state mutations that affect the UI or observable properties are performed on the main
-    /// actor. If the task is cancelled at any point, no state updates are applied.
-    ///
-    /// - Note: This method suspends until the underlying fetch task completes or is cancelled.
-    public func fetch() async {
-        fetchTask?.cancel()
+  /// Fetches log entries asynchronously based on the currently resolved scope and query
+  /// configuration.
+  ///
+  /// This method cancels any in-progress fetch operation before starting a new one, ensuring
+  /// that only the most recent request can update state. While fetching, it updates the
+  /// `isFetching` flag and clears any previous error.
+  ///
+  /// If no valid scope can be resolved, the fetch is aborted and the fetching state is reset.
+  /// Otherwise, a `LoggerQuery` is constructed using the resolved scope, log level filters,
+  /// and system log exclusion settings.
+  ///
+  /// The fetch is performed on a child task. On success, the fetched log entries are assigned
+  /// to `logs`, and `hasValidResults` is set to `true`. On failure, the logs are cleared,
+  /// valid results are marked as unavailable, and `lastError` is updated with a fetch error.
+  ///
+  /// All state mutations that affect the UI or observable properties are performed on the main
+  /// actor. Cancelled or stale tasks are prevented from applying fetched results.
+  ///
+  /// - Note: This method suspends until the underlying fetch task completes or is cancelled.
+  public func fetch() async {
+    fetchTask?.cancel()
+    fetchGeneration &+= 1
+    let generation = fetchGeneration
 
-        isFetching = true
-        lastError = nil
+    isFetching = true
+    lastError = nil
 
-        guard let scope = resolvedScope else {
-            isFetching = false
-            return
-        }
-
-        let query = LoggerQuery(
-            scope: scope,
-            excludeSystemLogs: excludeSystemLogs,
-            levels: levels
-        )
-
-        fetchTask = Task { [reader] in
-            do {
-                let results = try await reader.fetch(query: query)
-                guard !Task.isCancelled else { return }
-
-                await MainActor.run {
-                    self.logs = results
-                    self.hasValidResults = true
-                    self.isFetching = false
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-
-                await MainActor.run {
-                    self.logs = []
-                    self.hasValidResults = false
-                    self.isFetching = false
-                    self.lastError = .fetch(error)
-                }
-            }
-        }
-
-        await fetchTask?.value
+    guard let scope = resolvedScope else {
+      fetchTask = nil
+      isFetching = false
+      hasValidResults = false
+      return
     }
+
+    let query = LoggerQuery(
+      scope: scope,
+      excludeSystemLogs: excludeSystemLogs,
+      levels: levels
+    )
+
+    let task = Task { [reader, query] in
+      try Task.checkCancellation()
+      let results = try await reader.fetch(query: query)
+      try Task.checkCancellation()
+      return results
+    }
+    fetchTask = task
+
+    let result = await task.result
+    guard generation == fetchGeneration else { return }
+
+    fetchTask = nil
+    isFetching = false
+
+    switch result {
+    case .success(let results):
+      logs = results
+      hasValidResults = true
+
+    case .failure(let error):
+      guard !(error is CancellationError) else { return }
+
+      logs = []
+      hasValidResults = false
+      lastError = .fetch(error)
+    }
+  }
 }
 
 extension LoggerManager {
 
-    /// Exports the currently loaded logs in the specified format.
-    ///
-    /// The export work is performed asynchronously on a background thread to avoid blocking
-    /// the caller. On success, the exported data is returned. On failure, the error is captured
-    /// in ``lastError`` and returned as a `.failure` result.
-    ///
-    /// This method does not throw. Callers are expected to handle success or failure via the
-    /// returned `Result` value, or observe ``lastError`` for UI presentation.
-    ///
-    /// - Parameter format: The export format to use.
-    /// - Returns: A `Result` containing the exported `Data` on success, or a
-    ///   ``LoggerManagerError`` describing the failure.
-    public func export(format: Export.Format) async -> Result<Data, LoggerManagerError> {
-        self.lastError = nil
+  /// Exports the currently loaded logs in the specified format.
+  ///
+  /// The export work is performed asynchronously on a background thread to avoid blocking
+  /// the caller. On success, the exported data is returned. On failure, the error is captured
+  /// in ``lastError`` and returned as a `.failure` result.
+  ///
+  /// This method does not throw. Callers are expected to handle success or failure via the
+  /// returned `Result` value, or observe ``lastError`` for UI presentation.
+  ///
+  /// - Parameter format: The export format to use.
+  /// - Returns: A `Result` containing the exported `Data` on success, or a
+  ///   ``LoggerManagerError`` describing the failure.
+  public func export(format: Export.Format) async -> Result<Data, LoggerManagerError> {
+    self.lastError = nil
 
-        do {
-            let data = try await LoggerExporter.export(logs: logs, as: format)
-            return .success(data)
-        } catch {
-            let managerError = LoggerManagerError.export(error)
-            self.lastError = managerError
-            return .failure(managerError)
-        }
+    do {
+      let data = try await LoggerExporter.export(logs: logs, as: format)
+      return .success(data)
+    } catch {
+      let managerError = LoggerManagerError.export(error)
+      self.lastError = managerError
+      return .failure(managerError)
     }
+  }
 }
 
 extension LoggerManager {
 
-    /// Errors produced by `LoggerManager` operations.
-    public enum LoggerManagerError: Error, Identifiable, LocalizedError {
+  /// Errors produced by `LoggerManager` operations.
+  public enum LoggerManagerError: Error, Identifiable, LocalizedError {
 
-        /// An error occurred while fetching logs.
-        case fetch(Error)
+    /// An error occurred while fetching logs.
+    case fetch(Error)
 
-        /// An error occurred while exporting logs.
-        case export(Error)
-        
-        /// A stable identifier for use in SwiftUI or other identity-based contexts.
-        public var id: String {
-            switch self {
-                case .fetch: "fetch"
-                case .export: "export"
-            }
-        }
+    /// An error occurred while exporting logs.
+    case export(Error)
 
-        /// A human-readable description of the error suitable for display to the user.
-        public var errorDescription: String? {
-            switch self {
-                case .fetch(let error):
-                    return "Failed to fetch logs.\n\(error.localizedDescription)"
-
-                case .export(let error):
-                    return "Failed to export logs.\n\(error.localizedDescription)"
-            }
-        }
+    /// A stable identifier for use in SwiftUI or other identity-based contexts.
+    public var id: String {
+      switch self {
+      case .fetch: "fetch"
+      case .export: "export"
+      }
     }
+
+    /// A human-readable description of the error suitable for display to the user.
+    public var errorDescription: String? {
+      switch self {
+      case .fetch(let error):
+        return "Failed to fetch logs.\n\(error.localizedDescription)"
+
+      case .export(let error):
+        return "Failed to export logs.\n\(error.localizedDescription)"
+      }
+    }
+  }
 }
